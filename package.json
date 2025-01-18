@@ -2,7 +2,7 @@
   "name": "vscode-copytool",
   "displayName": "Copy Tool",
   "description": "A VS Code extension for copying code with file paths and managing code snippets in lists",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "ASIF MOHAMMED",
   "author": {
     "name": "ASIF MOHAMMED",
@@ -147,14 +147,15 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "semantic-release": "semantic-release",
+    "version:patch": "node scripts/version.js patch",
+    "version:minor": "node scripts/version.js minor",
+    "version:major": "node scripts/version.js major",
     "build": "npm run compile && vsce package",
-    "release": "semantic-release && npm run build"
+    "build:patch": "npm run version:patch && npm run build",
+    "build:minor": "npm run version:minor && npm run build",
+    "build:major": "npm run version:major && npm run build"
   },
   "devDependencies": {
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/git": "^10.0.1",
-    "@semantic-release/npm": "^11.0.2",
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.6",
     "@types/node": "20.x",
@@ -166,7 +167,6 @@
     "eslint": "^8.56.0",
     "glob": "^10.3.10",
     "mocha": "^10.2.0",
-    "semantic-release": "^23.0.0",
     "typescript": "^5.3.3"
   },
   "dependencies": {
