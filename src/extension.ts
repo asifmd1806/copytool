@@ -9,8 +9,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Create output channel
     const outputChannel = vscode.window.createOutputChannel('Copy Tool');
     context.subscriptions.push(outputChannel);
-    outputChannel.show(true);
-
+    
     // Initialize services
     const clipboardService = new ClipboardService(outputChannel);
     const fileProcessorService = new FileProcessorService(clipboardService);
@@ -27,9 +26,14 @@ export function activate(context: vscode.ExtensionContext) {
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBarItem.text = "$(clippy) Copy Tool";
     statusBarItem.tooltip = "Click to show Copy Tool output";
-    statusBarItem.command = 'workbench.action.output';
+    statusBarItem.command = 'copytool.showOutput';
     statusBarItem.show();
     context.subscriptions.push(statusBarItem);
+
+    // Register show output command
+    let showOutput = vscode.commands.registerCommand('copytool.showOutput', () => {
+        outputChannel.show(true);
+    });
 
     // Register dynamic submenu provider
     context.subscriptions.push(
@@ -222,28 +226,73 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    let clearClipboard = vscode.commands.registerCommand('copytool.clearClipboard', () => {
+        try {
+            clipboardService.clearClipboard();
+        } catch (error) {
+            clipboardService.log(`Error clearing clipboard: ${error}`, 'error');
+        }
+    });
+
+    let renameList = vscode.commands.registerCommand('copytool.renameList', async (item: any) => {
+        try {
+            if (item?.list?.id) {
+                const newName = await vscode.window.showInputBox({
+                    prompt: 'Enter new list name',
+                    value: item.list.name
+                });
+                if (newName) {
+                    await listService.renameList(item.list.id, newName);
+                }
+            }
+        } catch (error) {
+            clipboardService.log(`Error renaming list: ${error}`, 'error');
+        }
+    });
+
+    let removeFromList = vscode.commands.registerCommand('copytool.removeFromList', async (item: any) => {
+        try {
+            if (item?.list?.id && typeof item.index === 'number') {
+                const confirm = await vscode.window.showQuickPick(['Yes', 'No'], {
+                    placeHolder: `Remove ${item.entry?.relativePath} from list "${item.list.name}"?`
+                });
+                if (confirm === 'Yes') {
+                    await listService.removeFromList(item.list.id, item.index);
+                }
+            }
+        } catch (error) {
+            clipboardService.log(`Error removing from list: ${error}`, 'error');
+        }
+    });
+
     // Register all commands
     context.subscriptions.push(
         addToNewClipboard,
         addToExistingClipboard,
-        addToList,
+        clearClipboard,
         createList,
+        renameList,
         deleteList,
+        removeFromList,
         copyListContents,
         importFromGitignore,
-        addToSpecificList
+        addToSpecificList,
+        showOutput
     );
 
-    // Show welcome message
+    // Show welcome message and output channel
     outputChannel.appendLine('Copy Tool activated!');
     outputChannel.appendLine('Available commands:');
     outputChannel.appendLine('- Add to New Clipboard');
     outputChannel.appendLine('- Add to Existing Clipboard');
-    outputChannel.appendLine('- Add to List');
+    outputChannel.appendLine('- Clear Clipboard');
     outputChannel.appendLine('- Create List');
+    outputChannel.appendLine('- Rename List');
     outputChannel.appendLine('- Delete List');
+    outputChannel.appendLine('- Remove from List');
     outputChannel.appendLine('- Copy List Contents');
     outputChannel.appendLine('- Import from .gitignore');
+    outputChannel.show(true);
 }
 
 export function deactivate() {
