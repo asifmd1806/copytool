@@ -57,8 +57,8 @@
         "category": "Copy Tool"
       },
       {
-        "command": "copytool.addToList",
-        "title": "Add to List",
+        "command": "copytool.clearClipboard",
+        "title": "Clear Clipboard",
         "category": "Copy Tool"
       },
       {
@@ -73,10 +73,22 @@
         "icon": "$(add)"
       },
       {
+        "command": "copytool.renameList",
+        "title": "Rename List",
+        "category": "Copy Tool",
+        "icon": "$(edit)"
+      },
+      {
         "command": "copytool.deleteList",
         "title": "Delete List",
         "category": "Copy Tool",
         "icon": "$(trash)"
+      },
+      {
+        "command": "copytool.removeFromList",
+        "title": "Remove from List",
+        "category": "Copy Tool",
+        "icon": "$(remove)"
       },
       {
         "command": "copytool.copyListContents",
@@ -100,13 +112,23 @@
       ],
       "view/item/context": [
         {
+          "command": "copytool.renameList",
+          "when": "view == copyToolLists && viewItem == list",
+          "group": "1_modification@1"
+        },
+        {
           "command": "copytool.deleteList",
           "when": "view == copyToolLists && viewItem == list",
-          "group": "inline"
+          "group": "1_modification@2"
         },
         {
           "command": "copytool.copyListContents",
           "when": "view == copyToolLists && viewItem == list",
+          "group": "2_clipboard"
+        },
+        {
+          "command": "copytool.removeFromList",
+          "when": "view == copyToolLists && viewItem == entry",
           "group": "inline"
         }
       ],
@@ -120,9 +142,8 @@
           "group": "copytool@2"
         },
         {
-          "command": "copytool.addToList",
-          "group": "copytool@3",
-          "submenu": "copytool.listSubmenu"
+          "submenu": "copytool.listSubmenu",
+          "group": "copytool@3"
         }
       ],
       "editor/context": [
@@ -135,9 +156,8 @@
           "group": "copytool@2"
         },
         {
-          "command": "copytool.addToList",
-          "group": "copytool@3",
-          "submenu": "copytool.listSubmenu"
+          "submenu": "copytool.listSubmenu",
+          "group": "copytool@3"
         }
       ]
     },
