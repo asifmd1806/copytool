@@ -14,6 +14,7 @@ export class ListService implements vscode.TreeDataProvider<CopyListTreeItem> {
         private outputChannel: vscode.OutputChannel
     ) {
         this.loadLists();
+        this.outputChannel.appendLine('List Service initialized');
     }
 
     private loadLists(): void {
@@ -162,13 +163,21 @@ export class ListService implements vscode.TreeDataProvider<CopyListTreeItem> {
     async getChildren(element?: CopyListTreeItem): Promise<CopyListTreeItem[]> {
         if (!element) {
             // Root level - show lists
-            return Array.from(this.lists.values())
-                .sort((a, b) => b.lastModified - a.lastModified)
-                .map(list => new CopyListTreeItem(list, 'list'));
+            const lists = Array.from(this.lists.values())
+                .sort((a, b) => b.lastModified - a.lastModified);
+            
+            if (lists.length === 0) {
+                this.outputChannel.appendLine('No lists found');
+            } else {
+                this.outputChannel.appendLine(`Found ${lists.length} lists`);
+            }
+            
+            return lists.map(list => new CopyListTreeItem(list, 'list'));
         } else if (element.type === 'list') {
             // List level - show entries
             const list = this.lists.get(element.list.id);
             if (list) {
+                this.outputChannel.appendLine(`Showing ${list.entries.length} entries for list: ${list.name}`);
                 return list.entries.map(
                     (entry, index) => new CopyListTreeItem(list, 'entry', entry, index)
                 );
@@ -194,21 +203,21 @@ export class CopyListTreeItem extends vscode.TreeItem {
     ) {
         super(
             type === 'list' ? list.name : (entry?.relativePath || ''),
-            type === 'list' ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None
+            type === 'list' 
+                ? (list.entries.length > 0 ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed)
+                : vscode.TreeItemCollapsibleState.None
         );
 
         if (type === 'list') {
             this.tooltip = `Created: ${new Date(list.created).toLocaleString()}\nLast Modified: ${new Date(list.lastModified).toLocaleString()}\nEntries: ${list.entries.length}`;
             this.description = `${list.entries.length} entries`;
+            this.iconPath = new vscode.ThemeIcon('list-unordered');
+            this.contextValue = 'list';
         } else if (entry) {
             this.tooltip = entry.relativePath;
             this.description = new Date(entry.timestamp).toLocaleString();
+            this.iconPath = new vscode.ThemeIcon('file');
+            this.contextValue = 'entry';
         }
-
-        this.iconPath = new vscode.ThemeIcon(
-            type === 'list' ? 'list-unordered' : 'file'
-        );
-
-        this.contextValue = type;
     }
 } 

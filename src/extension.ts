@@ -18,7 +18,8 @@ export function activate(context: vscode.ExtensionContext) {
     // Register list view
     const listTreeView = vscode.window.createTreeView('copyToolLists', {
         treeDataProvider: listService,
-        showCollapseAll: true
+        showCollapseAll: true,
+        canSelectMany: false
     });
     context.subscriptions.push(listTreeView);
 
