@@ -147,7 +147,7 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "build": "npm run compile"
+    "build": "npm run compile && vsce package --no-dependencies"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
