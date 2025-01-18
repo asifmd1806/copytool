@@ -214,7 +214,7 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "build": "npm run compile && vsce package --no-dependencies"
+    "build": "npm run compile && vsce package"
   },
   "devDependencies": {
     "@types/minimatch": "^5.1.2",
@@ -232,5 +232,9 @@
   "dependencies": {
     "minimatch": "^10.0.1",
     "uuid": "^9.0.1"
-  }
+  },
+  "bundledDependencies": [
+    "minimatch",
+    "uuid"
+  ]
 }
