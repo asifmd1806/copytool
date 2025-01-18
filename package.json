@@ -30,7 +30,7 @@
       "activitybar": [
         {
           "id": "copyToolLists",
-          "title": "Copy Tool Lists",
+          "title": "Code Copy",
           "icon": "$(list-unordered)"
         }
       ]
@@ -41,7 +41,9 @@
           "id": "copyToolLists",
           "name": "Copy Lists",
           "icon": "$(list-unordered)",
-          "contextualTitle": "Copy Tool Lists"
+          "contextualTitle": "Code Copy Lists",
+          "type": "tree",
+          "visibility": "visible"
         }
       ]
     },
