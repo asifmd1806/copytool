@@ -3,7 +3,7 @@
   "displayName": "Copy Tool",
   "description": "A VS Code extension for copying code with file paths and managing code snippets in lists",
   "version": "0.5.1",
-  "publisher": "ASIF MOHAMMED",
+  "publisher": "asif-mohammed",
   "author": {
     "name": "ASIF MOHAMMED",
     "email": "asif18061996@gmail.com"
