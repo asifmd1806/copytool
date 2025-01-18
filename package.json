@@ -2,7 +2,7 @@
   "name": "vscode-copytool",
   "displayName": "Copy Tool",
   "description": "A VS Code extension for copying code with file paths and managing code snippets in lists",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "publisher": "asif-mohammed",
   "author": {
     "name": "ASIF MOHAMMED",
