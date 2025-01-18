@@ -21,7 +21,9 @@ jobs:
           node-version: '20'
           
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm install -g @vscode/vsce
         
       - name: Determine version bump
         id: bump
@@ -84,6 +86,16 @@ jobs:
           release_name: Release v${{ steps.new_version.outputs.version }}
           draft: false
           prerelease: false
+          
+      - name: Upload VSIX to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./vscode-copytool-${{ steps.new_version.outputs.version }}.vsix
+          asset_name: vscode-copytool-${{ steps.new_version.outputs.version }}.vsix
+          asset_content_type: application/octet-stream
           
       - name: Commit version bump
         run: |
