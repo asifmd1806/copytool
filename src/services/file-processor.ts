@@ -26,12 +26,24 @@ export class FileProcessorService {
             this.clipboardService.log(`Processing directory: ${uri.fsPath}`, 'info');
             const dirEntries = await this.processDirectory(uri, workspaceFolder);
             this.clipboardService.log(`Found ${dirEntries.length} entries in directory`, 'info');
+            
+            // Process first entry differently
+            if (dirEntries.length > 0) {
+                await this.clipboardService.addToNewClipboard(dirEntries[0]);
+                
+                // Process remaining entries
+                for (let i = 1; i < dirEntries.length; i++) {
+                    await this.clipboardService.addToExistingClipboard(dirEntries[i]);
+                }
+            }
+            
             entries.push(...dirEntries);
         } else {
             this.clipboardService.log(`Processing file: ${uri.fsPath}`, 'info');
             if (await this.shouldProcessFile(uri, workspaceFolder)) {
                 const fileEntry = await this.processFile(uri);
                 if (fileEntry) {
+                    await this.clipboardService.addToNewClipboard(fileEntry);
                     entries.push(fileEntry);
                     this.clipboardService.log(`Successfully processed file: ${uri.fsPath}`, 'info');
                 } else {
