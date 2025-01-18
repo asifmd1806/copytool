@@ -53,9 +53,7 @@ export class ClipboardService {
         this.log(`Added entry to clipboard (${this.currentClipboard.length}/${this.MAX_CLIPBOARD_ENTRIES} entries)`, 'info');
         
         // Format all content for copying
-        const formattedContent = this.currentClipboard
-            .map(e => this.formatEntry(e))
-            .join('\n\n');
+        const formattedContent = this.formatMultipleEntries(this.currentClipboard);
         
         this.log(`Total formatted content length: ${formattedContent.length} bytes`, 'info');
         await vscode.env.clipboard.writeText(formattedContent);
@@ -105,6 +103,11 @@ export class ClipboardService {
             
         this.log(`Formatted content length: ${formatted.length} bytes`, 'info');
         return formatted;
+    }
+
+    private formatMultipleEntries(entries: ClipboardEntry[]): string {
+        this.log(`Formatting ${entries.length} entries`, 'info');
+        return entries.map(entry => this.formatEntry(entry)).join('\n\n');
     }
 
     public log(message: string, level: 'info' | 'warning' | 'error' = 'info'): void {
