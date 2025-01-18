@@ -62,6 +62,11 @@
         "category": "Copy Tool"
       },
       {
+        "command": "copytool.addToSpecificList",
+        "title": "%listName%",
+        "category": "Copy Tool"
+      },
+      {
         "command": "copytool.createList",
         "title": "Create List",
         "category": "Copy Tool",
@@ -78,6 +83,11 @@
         "title": "Copy List Contents",
         "category": "Copy Tool",
         "icon": "$(copy)"
+      },
+      {
+        "command": "copytool.importFromGitignore",
+        "title": "Import Patterns from .gitignore",
+        "category": "Copy Tool"
       }
     ],
     "menus": {
@@ -111,7 +121,8 @@
         },
         {
           "command": "copytool.addToList",
-          "group": "copytool@3"
+          "group": "copytool@3",
+          "submenu": "copytool.listSubmenu"
         }
       ],
       "editor/context": [
@@ -125,17 +136,47 @@
         },
         {
           "command": "copytool.addToList",
-          "group": "copytool@3"
+          "group": "copytool@3",
+          "submenu": "copytool.listSubmenu"
         }
       ]
     },
+    "submenus": [
+      {
+        "id": "copytool.listSubmenu",
+        "label": "Add to List"
+      }
+    ],
     "configuration": {
       "title": "Copy Tool",
       "properties": {
         "copytool.format": {
           "type": "string",
-          "default": "{filepath-from-the-project directory}\n```\n{content}\n```",
-          "description": "Format for copied content. Use {filepath-from-the-project directory} for file path and {content} for file content."
+          "default": "{filepath}\n```\n{content}\n```",
+          "description": "Format template for copied content. Use {filepath} for file path and {content} for file content.",
+          "editPresentation": "multilineText"
+        },
+        "copytool.enableAllowlists": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable allowlist filtering for files"
+        },
+        "copytool.allowlistPatterns": {
+          "type": "string",
+          "default": "**/*",
+          "description": "Glob patterns to include in copying (one pattern per line)",
+          "editPresentation": "multilineText"
+        },
+        "copytool.enableBlocklists": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable blocklist filtering for files"
+        },
+        "copytool.blocklistPatterns": {
+          "type": "string",
+          "default": "**/node_modules/**\n**/.git/**",
+          "description": "Glob patterns to exclude from copying (one pattern per line)",
+          "editPresentation": "multilineText"
         }
       }
     }
@@ -150,7 +191,7 @@
     "build": "npm run compile && vsce package --no-dependencies"
   },
   "devDependencies": {
-    "@types/glob": "^8.1.0",
+    "@types/minimatch": "^5.1.2",
     "@types/mocha": "^10.0.6",
     "@types/node": "20.x",
     "@types/uuid": "^9.0.8",
@@ -159,11 +200,11 @@
     "@typescript-eslint/parser": "^6.15.0",
     "@vscode/test-electron": "^2.3.8",
     "eslint": "^8.56.0",
-    "glob": "^10.3.10",
     "mocha": "^10.2.0",
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "minimatch": "^10.0.1",
     "uuid": "^9.0.1"
   }
 }

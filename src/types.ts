@@ -1,6 +1,7 @@
 export interface ClipboardEntry {
     relativePath: string;
     content: string;
+    timestamp: number;
 }
 
 export interface CopyList {

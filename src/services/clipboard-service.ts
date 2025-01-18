@@ -44,10 +44,10 @@ export class ClipboardService {
 
     private formatEntry(entry: ClipboardEntry): string {
         const config = vscode.workspace.getConfiguration('copytool');
-        const format = config.get<string>('format') || '{filepath-from-the-project directory}\n```\n{content}\n```';
+        const format = config.get<string>('format') || '{filepath}\n```\n{content}\n```';
 
         return format
-            .replace('{filepath-from-the-project directory}', entry.relativePath)
+            .replace('{filepath}', entry.relativePath)
             .replace('{content}', entry.content);
     }
 
