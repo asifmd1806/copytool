@@ -8,6 +8,10 @@
     "name": "ASIF MOHAMMED",
     "email": "asif18061996@gmail.com"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/asif18061996/vscode-copytool.git"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -147,14 +151,14 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "version:patch": "npm version patch",
-    "version:minor": "npm version minor",
-    "version:major": "npm version major",
-    "build:patch": "npm run version:patch && npm run compile && vsce package",
-    "build:minor": "npm run version:minor && npm run compile && vsce package",
-    "build:major": "npm run version:major && npm run compile && vsce package"
+    "semantic-release": "semantic-release",
+    "build": "npm run compile && vsce package",
+    "release": "semantic-release && npm run build"
   },
   "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/npm": "^11.0.2",
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.6",
     "@types/node": "20.x",
@@ -166,6 +170,7 @@
     "eslint": "^8.56.0",
     "glob": "^10.3.10",
     "mocha": "^10.2.0",
+    "semantic-release": "^23.0.0",
     "typescript": "^5.3.3"
   },
   "dependencies": {
