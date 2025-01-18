@@ -31,12 +31,7 @@ The extension can be configured through VS Code settings:
     - `{filepath-from-the-project directory}`: Relative path from workspace root
     - `{content}`: File content
 
-## Console Output
 
-The extension logs all operations to the "Copy Tool" output channel with color-coded messages:
-- Green: Info messages
-- Yellow: Warning messages
-- Red: Error messages
 
 ## Development
 
