@@ -15,86 +15,87 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FileProcessorService = void 0;
 const vscode = __importStar(require("vscode"));
-const path = __importStar(require("path"));
-const minimatch_1 = __importDefault(require("minimatch"));
 class FileProcessorService {
-    constructor(clipboardService, outputChannel) {
+    constructor(clipboardService) {
         this.clipboardService = clipboardService;
-        this.outputChannel = outputChannel;
     }
-    async processFile(fileUri, workspaceFolder, _format) {
-        try {
-            const content = await vscode.workspace.fs.readFile(fileUri);
-            const relativePath = path.relative(workspaceFolder.uri.fsPath, fileUri.fsPath);
-            const entry = {
-                relativePath,
-                content: content.toString(),
-                timestamp: Date.now()
-            };
-            await this.clipboardService.addToClipboard(entry);
+    async processResource(uri) {
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+        if (!workspaceFolder) {
+            this.clipboardService.log('File is not in a workspace', 'error');
+            return [];
         }
-        catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-            this.log(`Error processing file ${fileUri.fsPath}: ${errorMessage}`, 'error');
-            throw error;
+        const stats = await vscode.workspace.fs.stat(uri);
+        const entries = [];
+        if (stats.type === vscode.FileType.Directory) {
+            this.clipboardService.log(`Processing directory: ${uri.fsPath}`, 'info');
+            const dirEntries = await this.processDirectory(uri, workspaceFolder);
+            entries.push(...dirEntries);
         }
+        else {
+            this.clipboardService.log(`Processing file: ${uri.fsPath}`, 'info');
+            const fileEntry = await this.processFile(uri);
+            if (fileEntry) {
+                entries.push(fileEntry);
+            }
+        }
+        return entries;
     }
-    async processDirectory(dirUri, workspaceFolder, config) {
-        try {
-            const files = await vscode.workspace.fs.readDirectory(dirUri);
-            for (const [name, type] of files) {
-                const fullPath = path.join(dirUri.fsPath, name);
-                const fileUri = vscode.Uri.file(fullPath);
-                const relativePath = path.relative(workspaceFolder.uri.fsPath, fullPath);
-                const isAllowed = config.allowlist.some(pattern => (0, minimatch_1.default)(relativePath, pattern));
-                const isBlocked = config.blocklist.some(pattern => (0, minimatch_1.default)(relativePath, pattern));
-                if (!isAllowed || isBlocked) {
-                    this.log(`Skipping ${relativePath} (filtered by patterns)`, 'warning');
-                    continue;
-                }
-                if (type === vscode.FileType.Directory) {
-                    await this.processDirectory(fileUri, workspaceFolder, config);
-                }
-                else {
-                    await this.processFile(fileUri, workspaceFolder, config.format);
+    async processDirectory(uri, workspaceFolder) {
+        const entries = [];
+        const files = await vscode.workspace.fs.readDirectory(uri);
+        for (const [name, type] of files) {
+            const filePath = vscode.Uri.joinPath(uri, name);
+            if (type === vscode.FileType.Directory) {
+                const subEntries = await this.processDirectory(filePath, workspaceFolder);
+                entries.push(...subEntries);
+            }
+            else if (type === vscode.FileType.File) {
+                const entry = await this.processFile(filePath);
+                if (entry) {
+                    entries.push(entry);
                 }
             }
         }
+        return entries;
+    }
+    async processFile(uri) {
+        try {
+            const relativePath = vscode.workspace.asRelativePath(uri, false);
+            const content = await this.readFile(uri);
+            return {
+                relativePath,
+                content
+            };
+        }
         catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-            this.log(`Error processing directory ${dirUri.fsPath}: ${errorMessage}`, 'error');
-            throw error;
+            this.clipboardService.log(`Error processing file ${uri.fsPath}: ${error}`, 'error');
+            return null;
         }
     }
-    log(message, level = 'info') {
-        const timestamp = new Date().toISOString();
-        const coloredMessage = this.getColoredMessage(message, level);
-        this.outputChannel.appendLine(`[${timestamp}] ${coloredMessage}`);
-    }
-    getColoredMessage(message, level) {
-        switch (level) {
-            case 'info':
-                return `\x1b[32m${message}\x1b[0m`; // Green
-            case 'warning':
-                return `\x1b[33m${message}\x1b[0m`; // Yellow
-            case 'error':
-                return `\x1b[31m${message}\x1b[0m`; // Red
-            default:
-                return message;
-        }
+    async readFile(uri) {
+        const content = await vscode.workspace.fs.readFile(uri);
+        return Buffer.from(content).toString('utf-8');
     }
 }
 exports.FileProcessorService = FileProcessorService;

@@ -1,64 +1,141 @@
 {
   "name": "vscode-copytool",
   "displayName": "Copy Tool",
-  "description": "A VS Code extension for advanced file/folder copying with customizable formats",
-  "version": "0.1.0",
+  "description": "A VS Code extension for copying code with file paths and managing code snippets in lists",
+  "version": "0.2.0",
+  "publisher": "ASIF MOHAMMED",
+  "author": {
+    "name": "ASIF MOHAMMED",
+    "email": "asif18061996@gmail.com"
+  },
   "engines": {
-    "vscode": "^1.60.0"
+    "vscode": "^1.85.0"
   },
   "categories": [
     "Other"
   ],
+  "keywords": [
+    "copy",
+    "clipboard",
+    "code snippets",
+    "file path",
+    "lists"
+  ],
   "activationEvents": [
-    "onCommand:copytool.addToClipboard",
-    "onCommand:copytool.createNewClipboard"
+    "*"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "copyToolLists",
+          "title": "Copy Tool Lists",
+          "icon": "$(list-unordered)"
+        }
+      ]
+    },
+    "views": {
+      "copyToolLists": [
+        {
+          "id": "copyToolLists",
+          "name": "Copy Lists",
+          "icon": "$(list-unordered)",
+          "contextualTitle": "Copy Tool Lists"
+        }
+      ]
+    },
     "commands": [
       {
-        "command": "copytool.addToClipboard",
-        "title": "Add to Clipboard"
+        "command": "copytool.addToNewClipboard",
+        "title": "Add to New Clipboard",
+        "category": "Copy Tool"
       },
       {
-        "command": "copytool.createNewClipboard",
-        "title": "Create New Clipboard"
+        "command": "copytool.addToExistingClipboard",
+        "title": "Add to Existing Clipboard",
+        "category": "Copy Tool"
+      },
+      {
+        "command": "copytool.addToList",
+        "title": "Add to List",
+        "category": "Copy Tool"
+      },
+      {
+        "command": "copytool.createList",
+        "title": "Create List",
+        "category": "Copy Tool",
+        "icon": "$(add)"
+      },
+      {
+        "command": "copytool.deleteList",
+        "title": "Delete List",
+        "category": "Copy Tool",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "copytool.copyListContents",
+        "title": "Copy List Contents",
+        "category": "Copy Tool",
+        "icon": "$(copy)"
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "copytool.createList",
+          "when": "view == copyToolLists",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "copytool.deleteList",
+          "when": "view == copyToolLists && viewItem == list",
+          "group": "inline"
+        },
+        {
+          "command": "copytool.copyListContents",
+          "when": "view == copyToolLists && viewItem == list",
+          "group": "inline"
+        }
+      ],
       "explorer/context": [
         {
-          "command": "copytool.addToClipboard",
+          "command": "copytool.addToNewClipboard",
           "group": "copytool@1"
         },
         {
-          "command": "copytool.createNewClipboard",
+          "command": "copytool.addToExistingClipboard",
           "group": "copytool@2"
+        },
+        {
+          "command": "copytool.addToList",
+          "group": "copytool@3"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "copytool.addToNewClipboard",
+          "group": "copytool@1"
+        },
+        {
+          "command": "copytool.addToExistingClipboard",
+          "group": "copytool@2"
+        },
+        {
+          "command": "copytool.addToList",
+          "group": "copytool@3"
         }
       ]
     },
     "configuration": {
       "title": "Copy Tool",
       "properties": {
-        "copytool.allowlist": {
-          "type": "array",
-          "default": [
-            "**/*"
-          ],
-          "description": "Patterns to include in copying (glob patterns)"
-        },
-        "copytool.blocklist": {
-          "type": "array",
-          "default": [
-            "**/node_modules/**",
-            "**/.git/**"
-          ],
-          "description": "Patterns to exclude from copying (glob patterns)"
-        },
         "copytool.format": {
           "type": "string",
           "default": "{filepath-from-the-project directory}\n```\n{content}\n```",
-          "description": "Format template for copied content"
+          "description": "Format for copied content. Use {filepath-from-the-project directory} for file path and {content} for file content."
         }
       }
     }
@@ -70,33 +147,28 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "version:patch": "node scripts/version.js patch",
-    "version:minor": "node scripts/version.js minor",
-    "version:major": "node scripts/version.js major",
-    "build": "npm run version:patch && npm run compile && vsce package",
+    "version:patch": "npm version patch",
+    "version:minor": "npm version minor",
+    "version:major": "npm version major",
+    "build:patch": "npm run version:patch && npm run compile && vsce package",
     "build:minor": "npm run version:minor && npm run compile && vsce package",
     "build:major": "npm run version:major && npm run compile && vsce package"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
-    "@types/mocha": "^8.2.2",
-    "@types/node": "14.x",
-    "@types/vscode": "^1.60.0",
-    "@typescript-eslint/eslint-plugin": "^4.26.0",
-    "@typescript-eslint/parser": "^4.26.0",
-    "eslint": "^7.27.0",
-    "glob": "^8.1.0",
-    "mocha": "^8.4.0",
-    "typescript": "^4.3.2",
-    "vscode-test": "^1.5.2"
+    "@types/mocha": "^10.0.6",
+    "@types/node": "20.x",
+    "@types/uuid": "^9.0.8",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@vscode/test-electron": "^2.3.8",
+    "eslint": "^8.56.0",
+    "glob": "^10.3.10",
+    "mocha": "^10.2.0",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@types/minimatch": "^3.0.5",
-    "minimatch": "^3.1.2"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/yourusername/vscode-copytool.git"
-  },
-  "license": "MIT"
+    "uuid": "^9.0.1"
+  }
 }

@@ -1,64 +1,45 @@
 import * as vscode from 'vscode';
-import { ClipboardEntry, ClipboardStore } from '../types';
+import { ClipboardEntry } from '../types';
 
 export class ClipboardService {
-    private clipboards: Map<string, ClipboardStore>;
-    private currentClipboard: string;
+    private currentClipboard: ClipboardEntry[] = [];
     private outputChannel: vscode.OutputChannel;
 
     constructor(outputChannel: vscode.OutputChannel) {
-        this.clipboards = new Map();
-        this.currentClipboard = 'default';
         this.outputChannel = outputChannel;
-        this.initializeDefaultClipboard();
+        this.outputChannel.show(true);
+        this.log('Copy Tool initialized', 'info');
     }
 
-    private initializeDefaultClipboard() {
-        this.clipboards.set('default', {
-            entries: [],
-            name: 'default'
-        });
-    }
-
-    public getCurrentClipboard(): string {
-        return this.currentClipboard;
-    }
-
-    public async createNewClipboard(name: string): Promise<void> {
-        if (this.clipboards.has(name)) {
-            throw new Error(`Clipboard "${name}" already exists`);
-        }
-
-        this.clipboards.set(name, {
-            entries: [],
-            name
-        });
-        this.currentClipboard = name;
-        this.log(`Created new clipboard: ${name}`, 'info');
-    }
-
-    public async addToClipboard(entry: ClipboardEntry): Promise<void> {
-        const clipboard = this.clipboards.get(this.currentClipboard);
-        if (!clipboard) {
-            throw new Error(`Clipboard "${this.currentClipboard}" not found`);
-        }
-
-        clipboard.entries.push(entry);
+    public async addToNewClipboard(entry: ClipboardEntry): Promise<void> {
+        // Clear existing entries and add new one
+        this.currentClipboard = [entry];
         
         // Format the content for copying
         const formattedContent = this.formatEntry(entry);
         await vscode.env.clipboard.writeText(formattedContent);
         
-        this.log(`Added ${entry.relativePath} to clipboard: ${this.currentClipboard}`, 'info');
+        this.log(`Started new clipboard with: ${entry.relativePath}`, 'info');
+        this.outputChannel.show(true);
     }
 
-    public getClipboardContents(name?: string): ClipboardEntry[] {
-        const clipboardName = name || this.currentClipboard;
-        const clipboard = this.clipboards.get(clipboardName);
-        if (!clipboard) {
-            throw new Error(`Clipboard "${clipboardName}" not found`);
-        }
-        return clipboard.entries;
+    public async addToExistingClipboard(entry: ClipboardEntry): Promise<void> {
+        // Add to existing entries
+        this.currentClipboard.push(entry);
+        
+        // Format all content for copying
+        const formattedContent = this.currentClipboard
+            .map(e => this.formatEntry(e))
+            .join('\n\n');
+        
+        await vscode.env.clipboard.writeText(formattedContent);
+        
+        this.log(`Added ${entry.relativePath} to existing clipboard`, 'info');
+        this.outputChannel.show(true);
+    }
+
+    public getCurrentClipboardContents(): ClipboardEntry[] {
+        return [...this.currentClipboard];
     }
 
     private formatEntry(entry: ClipboardEntry): string {
@@ -70,7 +51,7 @@ export class ClipboardService {
             .replace('{content}', entry.content);
     }
 
-    private log(message: string, level: 'info' | 'warning' | 'error' = 'info'): void {
+    public log(message: string, level: 'info' | 'warning' | 'error' = 'info'): void {
         const timestamp = new Date().toISOString();
         const coloredMessage = this.getColoredMessage(message, level);
         this.outputChannel.appendLine(`[${timestamp}] ${coloredMessage}`);
@@ -78,17 +59,21 @@ export class ClipboardService {
         // Also show error messages in the UI
         if (level === 'error') {
             vscode.window.showErrorMessage(message);
+        } else if (level === 'warning') {
+            vscode.window.showWarningMessage(message);
+        } else {
+            vscode.window.showInformationMessage(message);
         }
     }
 
     private getColoredMessage(message: string, level: 'info' | 'warning' | 'error'): string {
         switch (level) {
             case 'info':
-                return `\x1b[32m${message}\x1b[0m`; // Green
+                return `[INFO] ${message}`;
             case 'warning':
-                return `\x1b[33m${message}\x1b[0m`; // Yellow
+                return `[WARNING] ${message}`;
             case 'error':
-                return `\x1b[31m${message}\x1b[0m`; // Red
+                return `[ERROR] ${message}`;
             default:
                 return message;
         }
