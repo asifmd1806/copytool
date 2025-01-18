@@ -3,6 +3,7 @@ import { ClipboardService } from './services/clipboard-service';
 import { FileProcessorService } from './services/file-processor';
 import { ListService } from './services/list-service';
 import { ClipboardEntry } from './types';
+import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
     // Create output channel
@@ -29,6 +30,25 @@ export function activate(context: vscode.ExtensionContext) {
     statusBarItem.command = 'workbench.action.output';
     statusBarItem.show();
     context.subscriptions.push(statusBarItem);
+
+    // Register dynamic submenu provider
+    context.subscriptions.push(
+        vscode.commands.registerCommand('copytool.listSubmenu', async (uri: vscode.Uri) => {
+            const lists = listService.getLists();
+            if (lists.length === 0) {
+                return [{
+                    command: 'copytool.createList',
+                    title: 'Create New List...'
+                }];
+            }
+
+            return lists.map(list => ({
+                command: 'copytool.addToSpecificList',
+                title: list.name,
+                arguments: [uri, list.id]
+            }));
+        })
+    );
 
     // Register commands
     let addToNewClipboard = vscode.commands.registerCommand('copytool.addToNewClipboard', async (uri: vscode.Uri) => {
@@ -125,13 +145,93 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
+    let importFromGitignore = vscode.commands.registerCommand('copytool.importFromGitignore', async () => {
+        try {
+            // Find all .gitignore files in the workspace
+            const files = await vscode.workspace.findFiles('**/.gitignore');
+            
+            if (files.length === 0) {
+                clipboardService.log('No .gitignore files found in workspace', 'warning');
+                return;
+            }
+
+            // Let user select which .gitignore to import from if multiple exist
+            let selectedFile: vscode.Uri;
+            if (files.length === 1) {
+                selectedFile = files[0];
+            } else {
+                const items = files.map(file => ({
+                    label: vscode.workspace.asRelativePath(file),
+                    uri: file
+                }));
+                const selected = await vscode.window.showQuickPick(items, {
+                    placeHolder: 'Select .gitignore file to import from'
+                });
+                if (!selected) {
+                    return;
+                }
+                selectedFile = selected.uri;
+            }
+
+            // Read the .gitignore file
+            const content = await vscode.workspace.fs.readFile(selectedFile);
+            const patterns = content.toString()
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line && !line.startsWith('#'));
+
+            // Get the relative path to the .gitignore file's directory
+            const workspaceFolder = vscode.workspace.getWorkspaceFolder(selectedFile);
+            const gitignoreDir = path.dirname(selectedFile.fsPath);
+            const relativePrefix = workspaceFolder 
+                ? path.relative(workspaceFolder.uri.fsPath, gitignoreDir)
+                : '';
+
+            // Add the patterns to the blocklist
+            const config = vscode.workspace.getConfiguration('copytool');
+            const currentPatterns = config.get<string>('blocklistPatterns', '').split('\n').filter(p => p.trim());
+            
+            // Add prefix to patterns if needed and combine with existing patterns
+            const newPatterns = patterns.map(pattern => {
+                if (relativePrefix && !pattern.startsWith('/')) {
+                    return path.join(relativePrefix, pattern).replace(/\\/g, '/');
+                }
+                return pattern;
+            });
+            
+            const combinedPatterns = [...new Set([...currentPatterns, ...newPatterns])];
+            
+            // Update the configuration
+            await config.update('blocklistPatterns', combinedPatterns.join('\n'), vscode.ConfigurationTarget.Workspace);
+            await config.update('enableBlocklists', true, vscode.ConfigurationTarget.Workspace);
+            
+            clipboardService.log(`Imported ${patterns.length} patterns from ${vscode.workspace.asRelativePath(selectedFile)}`, 'info');
+        } catch (error) {
+            clipboardService.log(`Error importing from .gitignore: ${error}`, 'error');
+        }
+    });
+
+    let addToSpecificList = vscode.commands.registerCommand('copytool.addToSpecificList', async (uri: vscode.Uri, listId: string) => {
+        try {
+            const entries = await fileProcessorService.processResource(uri);
+            for (const entry of entries) {
+                await listService.addToList(listId, entry);
+            }
+        } catch (error) {
+            clipboardService.log(`Error adding to list: ${error}`, 'error');
+        }
+    });
+
+    // Register all commands
     context.subscriptions.push(
         addToNewClipboard,
         addToExistingClipboard,
         addToList,
         createList,
         deleteList,
-        copyListContents
+        copyListContents,
+        importFromGitignore,
+        addToSpecificList
     );
 
     // Show welcome message
@@ -143,6 +243,7 @@ export function activate(context: vscode.ExtensionContext) {
     outputChannel.appendLine('- Create List');
     outputChannel.appendLine('- Delete List');
     outputChannel.appendLine('- Copy List Contents');
+    outputChannel.appendLine('- Import from .gitignore');
 }
 
 export function deactivate() {
