@@ -9,26 +9,36 @@ export class ClipboardService {
 
     constructor(outputChannel: vscode.OutputChannel) {
         this.outputChannel = outputChannel;
-        this.log('Copy Tool initialized', 'info');
+        this.log('ClipboardService initialized', 'info');
     }
 
     public async addToNewClipboard(entry: ClipboardEntry): Promise<void> {
+        this.log(`Attempting to add to new clipboard: ${entry.relativePath}`, 'info');
+        
         if (!this.validateEntry(entry)) {
+            this.log('Entry validation failed, skipping', 'warning');
             return;
         }
 
         // Clear existing entries and add new one
         this.currentClipboard = [entry];
+        this.log(`Cleared existing clipboard (${this.currentClipboard.length} entries)`, 'info');
         
         // Format the content for copying
         const formattedContent = this.formatEntry(entry);
+        this.log(`Formatted content length: ${formattedContent.length} bytes`, 'info');
+        
         await vscode.env.clipboard.writeText(formattedContent);
+        this.log(`Content written to clipboard`, 'info');
         
         this.log(`Started new clipboard with: ${entry.relativePath}`, 'info');
     }
 
     public async addToExistingClipboard(entry: ClipboardEntry): Promise<void> {
+        this.log(`Attempting to add to existing clipboard: ${entry.relativePath}`, 'info');
+        
         if (!this.validateEntry(entry)) {
+            this.log('Entry validation failed, skipping', 'warning');
             return;
         }
 
@@ -40,27 +50,34 @@ export class ClipboardService {
         
         // Add to existing entries
         this.currentClipboard.push(entry);
+        this.log(`Added entry to clipboard (${this.currentClipboard.length}/${this.MAX_CLIPBOARD_ENTRIES} entries)`, 'info');
         
         // Format all content for copying
         const formattedContent = this.currentClipboard
             .map(e => this.formatEntry(e))
             .join('\n\n');
         
+        this.log(`Total formatted content length: ${formattedContent.length} bytes`, 'info');
         await vscode.env.clipboard.writeText(formattedContent);
+        this.log(`Content written to clipboard`, 'info');
         
         this.log(`Added ${entry.relativePath} to existing clipboard (${this.currentClipboard.length}/${this.MAX_CLIPBOARD_ENTRIES} entries)`, 'info');
     }
 
     public clearClipboard(): void {
+        const oldLength = this.currentClipboard.length;
         this.currentClipboard = [];
-        this.log('Clipboard cleared', 'info');
+        this.log(`Clipboard cleared (removed ${oldLength} entries)`, 'info');
     }
 
     public getCurrentClipboardContents(): ClipboardEntry[] {
+        this.log(`Getting current clipboard contents (${this.currentClipboard.length} entries)`, 'info');
         return [...this.currentClipboard];
     }
 
     private validateEntry(entry: ClipboardEntry): boolean {
+        this.log(`Validating entry: ${entry.relativePath}`, 'info');
+        
         if (!entry.content.trim()) {
             this.log(`Skipping empty file: ${entry.relativePath}`, 'warning');
             return false;
@@ -71,16 +88,23 @@ export class ClipboardService {
             return false;
         }
 
+        this.log(`Entry validation passed: ${entry.relativePath}`, 'info');
         return true;
     }
 
     private formatEntry(entry: ClipboardEntry): string {
+        this.log(`Formatting entry: ${entry.relativePath}`, 'info');
+        
         const config = vscode.workspace.getConfiguration('copytool');
         const format = config.get<string>('format') || '{filepath}\n```\n{content}\n```';
+        this.log(`Using format template: ${format}`, 'info');
 
-        return format
+        const formatted = format
             .replace('{filepath}', entry.relativePath)
             .replace('{content}', entry.content);
+            
+        this.log(`Formatted content length: ${formatted.length} bytes`, 'info');
+        return formatted;
     }
 
     public log(message: string, level: 'info' | 'warning' | 'error' = 'info'): void {
@@ -93,8 +117,6 @@ export class ClipboardService {
             vscode.window.showErrorMessage(message);
         } else if (level === 'warning') {
             vscode.window.showWarningMessage(message);
-        } else {
-            vscode.window.showInformationMessage(message);
         }
     }
 

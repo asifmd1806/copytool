@@ -5,14 +5,19 @@ import * as path from 'path';
 import { Minimatch } from 'minimatch';
 
 export class FileProcessorService {
-    constructor(private clipboardService: ClipboardService) {}
+    constructor(private clipboardService: ClipboardService) {
+        this.clipboardService.log('FileProcessorService initialized', 'info');
+    }
 
     public async processResource(uri: vscode.Uri): Promise<ClipboardEntry[]> {
+        this.clipboardService.log(`Starting to process resource: ${uri.fsPath}`, 'info');
+        
         const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
         if (!workspaceFolder) {
             this.clipboardService.log('File is not in a workspace', 'error');
             return [];
         }
+        this.clipboardService.log(`Found workspace folder: ${workspaceFolder.uri.fsPath}`, 'info');
 
         const stats = await vscode.workspace.fs.stat(uri);
         const entries: ClipboardEntry[] = [];
@@ -20,6 +25,7 @@ export class FileProcessorService {
         if (stats.type === vscode.FileType.Directory) {
             this.clipboardService.log(`Processing directory: ${uri.fsPath}`, 'info');
             const dirEntries = await this.processDirectory(uri, workspaceFolder);
+            this.clipboardService.log(`Found ${dirEntries.length} entries in directory`, 'info');
             entries.push(...dirEntries);
         } else {
             this.clipboardService.log(`Processing file: ${uri.fsPath}`, 'info');
@@ -27,38 +33,59 @@ export class FileProcessorService {
                 const fileEntry = await this.processFile(uri);
                 if (fileEntry) {
                     entries.push(fileEntry);
+                    this.clipboardService.log(`Successfully processed file: ${uri.fsPath}`, 'info');
+                } else {
+                    this.clipboardService.log(`Failed to process file: ${uri.fsPath}`, 'warning');
                 }
+            } else {
+                this.clipboardService.log(`Skipping file due to filters: ${uri.fsPath}`, 'info');
             }
         }
 
+        this.clipboardService.log(`Finished processing resource. Total entries: ${entries.length}`, 'info');
         return entries;
     }
 
     private async processDirectory(uri: vscode.Uri, workspaceFolder: vscode.WorkspaceFolder): Promise<ClipboardEntry[]> {
+        this.clipboardService.log(`Starting to process directory: ${uri.fsPath}`, 'info');
         const entries: ClipboardEntry[] = [];
-        const files = await vscode.workspace.fs.readDirectory(uri);
+        
+        try {
+            const files = await vscode.workspace.fs.readDirectory(uri);
+            this.clipboardService.log(`Found ${files.length} items in directory: ${uri.fsPath}`, 'info');
 
-        for (const [name, type] of files) {
-            const filePath = vscode.Uri.joinPath(uri, name);
-            if (type === vscode.FileType.Directory) {
-                const subEntries = await this.processDirectory(filePath, workspaceFolder);
-                entries.push(...subEntries);
-            } else if (type === vscode.FileType.File) {
-                if (await this.shouldProcessFile(filePath, workspaceFolder)) {
-                    const entry = await this.processFile(filePath);
-                    if (entry) {
-                        entries.push(entry);
+            for (const [name, type] of files) {
+                const filePath = vscode.Uri.joinPath(uri, name);
+                this.clipboardService.log(`Processing item: ${name} (${type === vscode.FileType.Directory ? 'directory' : 'file'})`, 'info');
+                
+                if (type === vscode.FileType.Directory) {
+                    const subEntries = await this.processDirectory(filePath, workspaceFolder);
+                    this.clipboardService.log(`Found ${subEntries.length} entries in subdirectory: ${name}`, 'info');
+                    entries.push(...subEntries);
+                } else if (type === vscode.FileType.File) {
+                    if (await this.shouldProcessFile(filePath, workspaceFolder)) {
+                        const entry = await this.processFile(filePath);
+                        if (entry) {
+                            entries.push(entry);
+                            this.clipboardService.log(`Added file to entries: ${name}`, 'info');
+                        }
+                    } else {
+                        this.clipboardService.log(`Skipping file due to filters: ${name}`, 'info');
                     }
                 }
             }
+        } catch (error) {
+            this.clipboardService.log(`Error reading directory ${uri.fsPath}: ${error}`, 'error');
         }
 
+        this.clipboardService.log(`Finished processing directory. Total entries: ${entries.length}`, 'info');
         return entries;
     }
 
     private async shouldProcessFile(uri: vscode.Uri, workspaceFolder: vscode.WorkspaceFolder): Promise<boolean> {
         const config = vscode.workspace.getConfiguration('copytool');
         const relativePath = path.relative(workspaceFolder.uri.fsPath, uri.fsPath).replace(/\\/g, '/');
+        this.clipboardService.log(`Checking filters for file: ${relativePath}`, 'info');
 
         // Check allowlist if enabled
         const enableAllowlists = config.get<boolean>('enableAllowlists', false);
@@ -68,9 +95,14 @@ export class FileProcessorService {
                 .map(p => p.trim())
                 .filter(p => p);
 
+            this.clipboardService.log(`Checking against ${allowlistPatterns.length} allowlist patterns`, 'info');
             const matchesAllowlist = allowlistPatterns.some(pattern => {
                 const mm = new Minimatch(pattern, { dot: true });
-                return mm.match(relativePath);
+                const matches = mm.match(relativePath);
+                if (matches) {
+                    this.clipboardService.log(`File matches allowlist pattern: ${pattern}`, 'info');
+                }
+                return matches;
             });
 
             if (!matchesAllowlist) {
@@ -87,9 +119,14 @@ export class FileProcessorService {
                 .map(p => p.trim())
                 .filter(p => p);
 
+            this.clipboardService.log(`Checking against ${blocklistPatterns.length} blocklist patterns`, 'info');
             const matchesBlocklist = blocklistPatterns.some(pattern => {
                 const mm = new Minimatch(pattern, { dot: true });
-                return mm.match(relativePath);
+                const matches = mm.match(relativePath);
+                if (matches) {
+                    this.clipboardService.log(`File matches blocklist pattern: ${pattern}`, 'info');
+                }
+                return matches;
             });
 
             if (matchesBlocklist) {
@@ -98,14 +135,17 @@ export class FileProcessorService {
             }
         }
 
+        this.clipboardService.log(`File passed all filters: ${relativePath}`, 'info');
         return true;
     }
 
     private async processFile(uri: vscode.Uri): Promise<ClipboardEntry | null> {
         try {
+            this.clipboardService.log(`Reading file content: ${uri.fsPath}`, 'info');
             const relativePath = vscode.workspace.asRelativePath(uri, false);
             const content = await this.readFile(uri);
             
+            this.clipboardService.log(`Successfully read file: ${relativePath} (${content.length} bytes)`, 'info');
             return {
                 relativePath,
                 content,
@@ -119,6 +159,8 @@ export class FileProcessorService {
 
     private async readFile(uri: vscode.Uri): Promise<string> {
         const content = await vscode.workspace.fs.readFile(uri);
-        return Buffer.from(content).toString('utf-8');
+        const text = Buffer.from(content).toString('utf-8');
+        this.clipboardService.log(`Read ${text.length} bytes from file: ${uri.fsPath}`, 'info');
+        return text;
     }
 } 
