@@ -27,3 +27,7 @@ npm-debug.log*
 .env
 .env.local
 .env.*.local 
+
+# VS Code Extensions
+*.vsix
+*.vsix.zip

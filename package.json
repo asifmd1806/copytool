@@ -147,13 +147,7 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "version:patch": "node scripts/version.js patch",
-    "version:minor": "node scripts/version.js minor",
-    "version:major": "node scripts/version.js major",
-    "build": "npm run compile && vsce package",
-    "build:patch": "npm run version:patch && npm run build",
-    "build:minor": "npm run version:minor && npm run build",
-    "build:major": "npm run version:major && npm run build"
+    "build": "npm run compile && vsce package"
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
