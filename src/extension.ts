@@ -7,7 +7,7 @@ import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
     // Create output channel
-    const outputChannel = vscode.window.createOutputChannel('Copy Tool');
+    const outputChannel = vscode.window.createOutputChannel('Code Copy', 'log');
     context.subscriptions.push(outputChannel);
     
     // Initialize services
@@ -24,14 +24,19 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Register status bar item
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    statusBarItem.text = "$(clippy) Copy Tool";
-    statusBarItem.tooltip = "Click to show Copy Tool output";
+    statusBarItem.text = "$(clippy) Code Copy";
+    statusBarItem.tooltip = "Click to show Code Copy output";
     statusBarItem.command = 'copytool.showOutput';
     statusBarItem.show();
     context.subscriptions.push(statusBarItem);
 
     // Register show output command
     let showOutput = vscode.commands.registerCommand('copytool.showOutput', () => {
+        outputChannel.show(true);
+    });
+
+    // Add command to show output channel in Command Palette
+    let showOutputCommand = vscode.commands.registerCommand('copytool.openOutputChannel', () => {
         outputChannel.show(true);
     });
 
@@ -277,11 +282,12 @@ export function activate(context: vscode.ExtensionContext) {
         copyListContents,
         importFromGitignore,
         addToSpecificList,
-        showOutput
+        showOutput,
+        showOutputCommand
     );
 
     // Show welcome message and output channel
-    outputChannel.appendLine('Copy Tool activated!');
+    outputChannel.appendLine('Code Copy activated!');
     outputChannel.appendLine('Available commands:');
     outputChannel.appendLine('- Add to New Clipboard');
     outputChannel.appendLine('- Add to Existing Clipboard');
@@ -292,6 +298,7 @@ export function activate(context: vscode.ExtensionContext) {
     outputChannel.appendLine('- Remove from List');
     outputChannel.appendLine('- Copy List Contents');
     outputChannel.appendLine('- Import from .gitignore');
+    outputChannel.appendLine('- Show Output Channel');
     outputChannel.show(true);
 }
 
