@@ -100,6 +100,12 @@
         "command": "copytool.importFromGitignore",
         "title": "Import Patterns from .gitignore",
         "category": "Copy Tool"
+      },
+      {
+        "command": "copytool.openOutputChannel",
+        "title": "Show Output Channel",
+        "category": "Copy Tool",
+        "icon": "$(output)"
       }
     ],
     "menus": {
