@@ -1,0 +1,102 @@
+{
+  "name": "vscode-copytool",
+  "displayName": "Copy Tool",
+  "description": "A VS Code extension for advanced file/folder copying with customizable formats",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:copytool.addToClipboard",
+    "onCommand:copytool.createNewClipboard"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "copytool.addToClipboard",
+        "title": "Add to Clipboard"
+      },
+      {
+        "command": "copytool.createNewClipboard",
+        "title": "Create New Clipboard"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "copytool.addToClipboard",
+          "group": "copytool@1"
+        },
+        {
+          "command": "copytool.createNewClipboard",
+          "group": "copytool@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Copy Tool",
+      "properties": {
+        "copytool.allowlist": {
+          "type": "array",
+          "default": [
+            "**/*"
+          ],
+          "description": "Patterns to include in copying (glob patterns)"
+        },
+        "copytool.blocklist": {
+          "type": "array",
+          "default": [
+            "**/node_modules/**",
+            "**/.git/**"
+          ],
+          "description": "Patterns to exclude from copying (glob patterns)"
+        },
+        "copytool.format": {
+          "type": "string",
+          "default": "{filepath-from-the-project directory}\n```\n{content}\n```",
+          "description": "Format template for copied content"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "version:patch": "node scripts/version.js patch",
+    "version:minor": "node scripts/version.js minor",
+    "version:major": "node scripts/version.js major",
+    "build": "npm run version:patch && npm run compile && vsce package",
+    "build:minor": "npm run version:minor && npm run compile && vsce package",
+    "build:major": "npm run version:major && npm run compile && vsce package"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^8.2.2",
+    "@types/node": "14.x",
+    "@types/vscode": "^1.60.0",
+    "@typescript-eslint/eslint-plugin": "^4.26.0",
+    "@typescript-eslint/parser": "^4.26.0",
+    "eslint": "^7.27.0",
+    "glob": "^8.1.0",
+    "mocha": "^8.4.0",
+    "typescript": "^4.3.2",
+    "vscode-test": "^1.5.2"
+  },
+  "dependencies": {
+    "@types/minimatch": "^3.0.5",
+    "minimatch": "^3.1.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/vscode-copytool.git"
+  },
+  "license": "MIT"
+}
