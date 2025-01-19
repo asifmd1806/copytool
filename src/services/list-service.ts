@@ -1,202 +1,20 @@
 import * as vscode from 'vscode';
-import { v4 as uuidv4 } from 'uuid';
-import { ClipboardEntry, CopyList } from '../types';
+import { ClipboardEntry } from '../types';
+import { LoggerService } from './logger-service';
+import { ContentFormatterService } from './content-formatter-service';
+import { ClipboardService } from './clipboard-service';
 
-export class ListService implements vscode.TreeDataProvider<CopyListTreeItem> {
-    private lists: Map<string, CopyList> = new Map();
-    private _onDidChangeTreeData: vscode.EventEmitter<CopyListTreeItem | undefined | null | void> = new vscode.EventEmitter<CopyListTreeItem | undefined | null | void>();
-    readonly onDidChangeTreeData: vscode.Event<CopyListTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
-    private readonly MAX_ENTRIES_PER_LIST = 100;
-    private readonly MAX_LISTS = 20;
-
-    constructor(
-        private globalState: vscode.Memento,
-        private outputChannel: vscode.OutputChannel
-    ) {
-        this.loadLists();
-        this.outputChannel.appendLine('List Service initialized');
-    }
-
-    private loadLists(): void {
-        const savedLists = this.globalState.get<CopyList[]>('copytool.lists', []);
-        this.lists.clear();
-        for (const list of savedLists) {
-            this.lists.set(list.id, list);
-        }
-    }
-
-    private async saveLists(): Promise<void> {
-        const listsArray = Array.from(this.lists.values());
-        await this.globalState.update('copytool.lists', listsArray);
-        this.refresh();
-    }
-
-    public refresh(): void {
-        this._onDidChangeTreeData.fire();
-    }
-
-    private validateListName(name: string): boolean {
-        if (!name || !name.trim()) {
-            this.outputChannel.appendLine('List name cannot be empty');
-            return false;
-        }
-
-        // Check for duplicates
-        const exists = Array.from(this.lists.values()).some(list => list.name === name.trim());
-        if (exists) {
-            this.outputChannel.appendLine(`A list named "${name}" already exists`);
-            return false;
-        }
-
-        return true;
-    }
-
-    public async createList(name: string): Promise<void> {
-        if (!this.validateListName(name)) {
-            return;
-        }
-
-        if (this.lists.size >= this.MAX_LISTS) {
-            this.outputChannel.appendLine(`Cannot create more than ${this.MAX_LISTS} lists`);
-            return;
-        }
-
-        const id = uuidv4();
-        const list: CopyList = {
-            id,
-            name: name.trim(),
-            entries: [],
-            created: Date.now(),
-            lastModified: Date.now()
-        };
-        this.lists.set(id, list);
-        await this.saveLists();
-        this.outputChannel.appendLine(`Created new list: ${name}`);
-    }
-
-    public async renameList(listId: string, newName: string): Promise<void> {
-        if (!this.validateListName(newName)) {
-            return;
-        }
-
-        const list = this.lists.get(listId);
-        if (list) {
-            const oldName = list.name;
-            list.name = newName.trim();
-            list.lastModified = Date.now();
-            await this.saveLists();
-            this.outputChannel.appendLine(`Renamed list from "${oldName}" to "${newName}"`);
-        }
-    }
-
-    public async deleteList(listId: string): Promise<void> {
-        const list = this.lists.get(listId);
-        if (list) {
-            this.lists.delete(listId);
-            await this.saveLists();
-            this.outputChannel.appendLine(`Deleted list: ${list.name}`);
-        }
-    }
-
-    public async removeFromList(listId: string, entryIndex: number): Promise<void> {
-        const list = this.lists.get(listId);
-        if (list && entryIndex >= 0 && entryIndex < list.entries.length) {
-            const entry = list.entries[entryIndex];
-            list.entries.splice(entryIndex, 1);
-            list.lastModified = Date.now();
-            await this.saveLists();
-            this.outputChannel.appendLine(`Removed ${entry.relativePath} from list: ${list.name}`);
-        }
-    }
-
-    public async addToList(listId: string, entry: ClipboardEntry): Promise<void> {
-        const list = this.lists.get(listId);
-        if (list) {
-            if (list.entries.length >= this.MAX_ENTRIES_PER_LIST) {
-                this.outputChannel.appendLine(`List "${list.name}" is full (max ${this.MAX_ENTRIES_PER_LIST} entries)`);
-                return;
-            }
-
-            // Check for duplicates
-            const isDuplicate = list.entries.some(e => e.relativePath === entry.relativePath);
-            if (isDuplicate) {
-                this.outputChannel.appendLine(`${entry.relativePath} is already in list: ${list.name}`);
-                return;
-            }
-
-            list.entries.push(entry);
-            list.lastModified = Date.now();
-            await this.saveLists();
-            this.outputChannel.appendLine(`Added ${entry.relativePath} to list: ${list.name} (${list.entries.length}/${this.MAX_ENTRIES_PER_LIST} entries)`);
-        }
-    }
-
-    public getLists(): CopyList[] {
-        return Array.from(this.lists.values());
-    }
-
-    public getList(listId: string): CopyList | undefined {
-        return this.lists.get(listId);
-    }
-
-    public async copyListContents(listId: string): Promise<void> {
-        const list = this.lists.get(listId);
-        if (list) {
-            if (list.entries.length === 0) {
-                this.outputChannel.appendLine(`List "${list.name}" is empty`);
-                return;
-            }
-
-            const formattedContent = list.entries
-                .map(entry => `${entry.relativePath}\n\`\`\`\n${entry.content}\n\`\`\``)
-                .join('\n\n');
-            await vscode.env.clipboard.writeText(formattedContent);
-            this.outputChannel.appendLine(`Copied contents of list: ${list.name} (${list.entries.length} entries)`);
-        }
-    }
-
-    // TreeDataProvider implementation
-    getTreeItem(element: CopyListTreeItem): vscode.TreeItem {
-        return element;
-    }
-
-    async getChildren(element?: CopyListTreeItem): Promise<CopyListTreeItem[]> {
-        if (!element) {
-            // Root level - show lists
-            const lists = Array.from(this.lists.values())
-                .sort((a, b) => b.lastModified - a.lastModified);
-            
-            if (lists.length === 0) {
-                this.outputChannel.appendLine('No lists found');
-            } else {
-                this.outputChannel.appendLine(`Found ${lists.length} lists`);
-            }
-            
-            return lists.map(list => new CopyListTreeItem(list, 'list'));
-        } else if (element.type === 'list') {
-            // List level - show entries
-            const list = this.lists.get(element.list.id);
-            if (list) {
-                this.outputChannel.appendLine(`Showing ${list.entries.length} entries for list: ${list.name}`);
-                return list.entries.map(
-                    (entry, index) => new CopyListTreeItem(list, 'entry', entry, index)
-                );
-            }
-        }
-        return [];
-    }
-
-    getParent(element: CopyListTreeItem): vscode.ProviderResult<CopyListTreeItem> {
-        if (element.type === 'entry') {
-            return new CopyListTreeItem(element.list, 'list');
-        }
-        return null;
-    }
+export interface List {
+    id: string;
+    name: string;
+    entries: ClipboardEntry[];
+    createdAt: number;
+    updatedAt: number;
 }
 
-export class CopyListTreeItem extends vscode.TreeItem {
+export class ListTreeItem extends vscode.TreeItem {
     constructor(
-        public readonly list: CopyList,
+        public readonly list: List,
         public readonly type: 'list' | 'entry',
         public readonly entry?: ClipboardEntry,
         public readonly index?: number
@@ -209,7 +27,7 @@ export class CopyListTreeItem extends vscode.TreeItem {
         );
 
         if (type === 'list') {
-            this.tooltip = `Created: ${new Date(list.created).toLocaleString()}\nLast Modified: ${new Date(list.lastModified).toLocaleString()}\nEntries: ${list.entries.length}`;
+            this.tooltip = `Created: ${new Date(list.createdAt).toLocaleString()}\nLast Modified: ${new Date(list.updatedAt).toLocaleString()}\nEntries: ${list.entries.length}`;
             this.description = `${list.entries.length} entries`;
             this.iconPath = new vscode.ThemeIcon('list-unordered');
             this.contextValue = 'list';
@@ -219,5 +37,131 @@ export class CopyListTreeItem extends vscode.TreeItem {
             this.iconPath = new vscode.ThemeIcon('file');
             this.contextValue = 'entry';
         }
+    }
+}
+
+export class ListService implements vscode.TreeDataProvider<ListTreeItem> {
+    private lists: Map<string, List> = new Map();
+    private _onDidChangeTreeData: vscode.EventEmitter<ListTreeItem | undefined | null | void> = new vscode.EventEmitter<ListTreeItem | undefined | null | void>();
+    readonly onDidChangeTreeData: vscode.Event<ListTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
+
+    constructor(
+        private logger: LoggerService,
+        private formatter: ContentFormatterService,
+        private clipboard: ClipboardService
+    ) {}
+
+    public refresh(): void {
+        this._onDidChangeTreeData.fire();
+    }
+
+    public getTreeItem(element: ListTreeItem): vscode.TreeItem {
+        return element;
+    }
+
+    public async getChildren(element?: ListTreeItem): Promise<ListTreeItem[]> {
+        if (!element) {
+            // Root level - show lists
+            const lists = Array.from(this.lists.values())
+                .sort((a, b) => b.updatedAt - a.updatedAt);
+            
+            this.logger.info(`Found ${lists.length} lists`);
+            return lists.map(list => new ListTreeItem(list, 'list'));
+        } else if (element.type === 'list') {
+            // List level - show entries
+            const list = this.lists.get(element.list.id);
+            if (list) {
+                this.logger.info(`Showing ${list.entries.length} entries for list: ${list.name}`);
+                return list.entries.map(
+                    (entry, index) => new ListTreeItem(list, 'entry', entry, index)
+                );
+            }
+        }
+        return [];
+    }
+
+    public getParent(element: ListTreeItem): vscode.ProviderResult<ListTreeItem> {
+        if (element.type === 'entry') {
+            return new ListTreeItem(element.list, 'list');
+        }
+        return null;
+    }
+
+    public createList(name: string): List {
+        const id = Date.now().toString();
+        const list: List = {
+            id,
+            name,
+            entries: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        };
+        
+        this.lists.set(id, list);
+        this.logger.info(`Created new list: ${name} (${id})`);
+        this.refresh();
+        return list;
+    }
+
+    public getList(id: string): List | undefined {
+        return this.lists.get(id);
+    }
+
+    public getAllLists(): List[] {
+        return Array.from(this.lists.values());
+    }
+
+    public deleteList(id: string): boolean {
+        const deleted = this.lists.delete(id);
+        if (deleted) {
+            this.logger.info(`Deleted list: ${id}`);
+            this.refresh();
+        }
+        return deleted;
+    }
+
+    public addEntryToList(listId: string, entry: ClipboardEntry): boolean {
+        const list = this.lists.get(listId);
+        if (!list) {
+            this.logger.warning(`List not found: ${listId}`);
+            return false;
+        }
+
+        list.entries.push(entry);
+        list.updatedAt = Date.now();
+        this.logger.info(`Added entry to list ${list.name}: ${entry.relativePath}`);
+        this.refresh();
+        return true;
+    }
+
+    public removeEntryFromList(listId: string, entryIndex: number): boolean {
+        const list = this.lists.get(listId);
+        if (!list || entryIndex < 0 || entryIndex >= list.entries.length) {
+            return false;
+        }
+
+        list.entries.splice(entryIndex, 1);
+        list.updatedAt = Date.now();
+        this.logger.info(`Removed entry at index ${entryIndex} from list ${list.name}`);
+        this.refresh();
+        return true;
+    }
+
+    public async copyListToClipboard(listId: string): Promise<boolean> {
+        const list = this.lists.get(listId);
+        if (!list) {
+            this.logger.warning(`List not found: ${listId}`);
+            return false;
+        }
+
+        if (list.entries.length === 0) {
+            this.logger.warning(`List is empty: ${list.name}`);
+            return false;
+        }
+
+        const formattedContent = this.formatter.formatEntries(list.entries);
+        await this.clipboard.setContent(formattedContent);
+        this.logger.info(`Copied list ${list.name} to clipboard (${list.entries.length} entries)`);
+        return true;
     }
 } 
