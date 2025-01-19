@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-    tags: [ 'v*' ]
 
 jobs:
   release:
@@ -95,11 +94,21 @@ jobs:
           name: vscode-copytool
           path: "*.vsix"
           if-no-files-found: error
+
+      - name: Create and push tag
+        run: |
+          NEW_VERSION=${{ steps.new_version.outputs.version }}
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add package.json
+          git commit -m "chore: bump version to ${NEW_VERSION} [skip ci]"
+          git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
+          git push origin "v${NEW_VERSION}"
+          git push
         
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -108,12 +117,4 @@ jobs:
           prerelease: false
           name: Release v${{ steps.new_version.outputs.version }}
           tag_name: v${{ steps.new_version.outputs.version }}
-          generate_release_notes: true
-          
-      - name: Commit version bump
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add package.json
-          git commit -m "chore: bump version to ${{ steps.new_version.outputs.version }} [skip ci]"
-          git push 
+          generate_release_notes: true 
