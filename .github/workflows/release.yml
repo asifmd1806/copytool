@@ -84,9 +84,7 @@ jobs:
           npm version $NEW_VERSION --no-git-tag-version
           
       - name: Build extension
-        run: |
-          npm run compile
-          vsce package --no-dependencies
+        run: npm run build
           
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4

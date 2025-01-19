@@ -2,7 +2,7 @@
   "name": "vscode-copytool",
   "displayName": "Copy Tool",
   "description": "A VS Code extension for copying code with file paths and managing code snippets in lists",
-  "version": "0.5.12",
+  "version": "0.5.13",
   "publisher": "asif-mohammed",
   "author": {
     "name": "ASIF MOHAMMED",
@@ -12,6 +12,7 @@
     "type": "git",
     "url": "https://github.com/asif-mahmud/vscode-copytool.git"
   },
+  "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -26,13 +27,12 @@
     "lists"
   ],
   "activationEvents": [
-    "*"
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "files": [
     "out/**/*",
-    "src/**/*",
-    "node_modules/**/*"
+    "src/**/*"
   ],
   "contributes": {
     "viewsContainers": {
@@ -192,7 +192,7 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "build": "npm run compile && vsce package --no-dependencies"
+    "build": "npm run compile && vsce package"
   },
   "devDependencies": {
     "@types/minimatch": "^5.1.2",
@@ -210,5 +210,9 @@
   "dependencies": {
     "minimatch": "^10.0.1",
     "uuid": "^9.0.1"
-  }
+  },
+  "bundleDependencies": [
+    "minimatch",
+    "uuid"
+  ]
 }
