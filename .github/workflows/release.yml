@@ -41,8 +41,8 @@ jobs:
         run: |
           echo "TypeScript files and services:"
           tree src -P "*.ts" --prune
-          echo "Services directory:"
-          tree src/services -P "*.ts" --prune
+          echo "Core services directory:"
+          tree src/core/services -P "*.ts" --prune
           
       - name: Determine version bump
         id: bump
