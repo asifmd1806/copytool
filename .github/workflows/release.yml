@@ -31,12 +31,10 @@ jobs:
           
       - name: List directory structure
         run: |
-          echo "Current directory:"
-          pwd
-          echo "Directory contents:"
-          ls -la
-          echo "Source directory structure:"
-          tree src
+          echo "TypeScript files and services:"
+          tree src -P "*.ts" --prune
+          echo "Services directory:"
+          tree src/services -P "*.ts" --prune
           
       - name: Determine version bump
         id: bump
@@ -90,15 +88,27 @@ jobs:
         run: |
           npm run compile
           vsce package
+          
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-copytool
+          path: "*.vsix"
+          if-no-files-found: error
         
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: "*.vsix"
           draft: false
           prerelease: false
+          name: Release v${{ steps.new_version.outputs.version }}
+          tag_name: v${{ steps.new_version.outputs.version }}
+          generate_release_notes: true
           
       - name: Commit version bump
         run: |
