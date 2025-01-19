@@ -2,7 +2,7 @@
   "name": "vscode-copytool",
   "displayName": "Copy Tool",
   "description": "A VS Code extension for copying code with file paths and managing code snippets in lists",
-  "version": "0.5.9",
+  "version": "0.5.12",
   "publisher": "asif-mohammed",
   "author": {
     "name": "ASIF MOHAMMED",
@@ -31,7 +31,8 @@
   "main": "./out/extension.js",
   "files": [
     "out/**/*",
-    "src/**/*"
+    "src/**/*",
+    "node_modules/**/*"
   ],
   "contributes": {
     "viewsContainers": {
@@ -72,8 +73,8 @@
         "category": "Copy Tool"
       },
       {
-        "command": "copytool.addToSpecificList",
-        "title": "%listName%",
+        "command": "copytool.addToList",
+        "title": "Add to List",
         "category": "Copy Tool"
       },
       {
@@ -83,33 +84,16 @@
         "icon": "$(add)"
       },
       {
-        "command": "copytool.renameList",
-        "title": "Rename List",
-        "category": "Copy Tool",
-        "icon": "$(edit)"
-      },
-      {
         "command": "copytool.deleteList",
         "title": "Delete List",
         "category": "Copy Tool",
         "icon": "$(trash)"
       },
       {
-        "command": "copytool.removeFromList",
-        "title": "Remove from List",
-        "category": "Copy Tool",
-        "icon": "$(remove)"
-      },
-      {
-        "command": "copytool.copyListContents",
-        "title": "Copy List Contents",
+        "command": "copytool.copyList",
+        "title": "Copy List",
         "category": "Copy Tool",
         "icon": "$(copy)"
-      },
-      {
-        "command": "copytool.importFromGitignore",
-        "title": "Import Patterns from .gitignore",
-        "category": "Copy Tool"
       },
       {
         "command": "copytool.openOutputChannel",
@@ -128,24 +112,14 @@
       ],
       "view/item/context": [
         {
-          "command": "copytool.renameList",
-          "when": "view == copyToolLists && viewItem == list",
-          "group": "1_modification@1"
-        },
-        {
           "command": "copytool.deleteList",
           "when": "view == copyToolLists && viewItem == list",
           "group": "1_modification@2"
         },
         {
-          "command": "copytool.copyListContents",
+          "command": "copytool.copyList",
           "when": "view == copyToolLists && viewItem == list",
           "group": "2_clipboard"
-        },
-        {
-          "command": "copytool.removeFromList",
-          "when": "view == copyToolLists && viewItem == entry",
-          "group": "inline"
         }
       ],
       "explorer/context": [
@@ -158,7 +132,7 @@
           "group": "copytool@2"
         },
         {
-          "submenu": "copytool.listSubmenu",
+          "command": "copytool.addToList",
           "group": "copytool@3"
         }
       ],
@@ -172,17 +146,11 @@
           "group": "copytool@2"
         },
         {
-          "submenu": "copytool.listSubmenu",
+          "command": "copytool.addToList",
           "group": "copytool@3"
         }
       ]
     },
-    "submenus": [
-      {
-        "id": "copytool.listSubmenu",
-        "label": "Add to List"
-      }
-    ],
     "configuration": {
       "title": "Copy Tool",
       "properties": {
@@ -224,7 +192,7 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "build": "npm run compile && vsce package"
+    "build": "npm run compile && vsce package --no-dependencies"
   },
   "devDependencies": {
     "@types/minimatch": "^5.1.2",
@@ -242,9 +210,5 @@
   "dependencies": {
     "minimatch": "^10.0.1",
     "uuid": "^9.0.1"
-  },
-  "bundledDependencies": [
-    "minimatch",
-    "uuid"
-  ]
+  }
 }
