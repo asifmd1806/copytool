@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
-import { ClipboardService } from './services/clipboard-service';
-import { FileService } from './services/file-service';
-import { FilterService } from './services/filter-service';
-import { LoggerService } from './services/logger-service';
-import { ContentFormatterService } from './services/content-formatter-service';
-import { ListService } from './services/list-service';
-import { ResourceProcessorService } from './services/resource-processor-service';
+import { ClipboardService } from './core/services/clipboard-service';
+import { FileService } from './core/services/file-service';
+import { FilterService } from './core/services/filter-service';
+import { LoggerService } from './core/services/logger-service';
+import { ContentFormatterService } from './core/services/content-formatter-service';
+import { ListService } from './core/services/list-service';
+import { ResourceProcessorService } from './core/services/resource-processor-service';
+import { StorageService } from './storage/storage-service';
+import { ListTreeProvider } from './views/list-tree-provider';
 
 export function activate(context: vscode.ExtensionContext) {
     // Initialize services
@@ -14,7 +16,8 @@ export function activate(context: vscode.ExtensionContext) {
     const filterService = new FilterService(logger);
     const clipboardService = new ClipboardService(logger);
     const formatter = new ContentFormatterService(logger);
-    const listService = new ListService(logger, formatter, clipboardService);
+    const storage = new StorageService(context, logger);
+    const listService = new ListService(logger, formatter, clipboardService, storage);
     const processor = new ResourceProcessorService(
         logger,
         fileService,
@@ -24,8 +27,9 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // Register list view
+    const listTreeProvider = new ListTreeProvider(logger, () => listService.getAllLists());
     const listView = vscode.window.createTreeView('copyToolLists', {
-        treeDataProvider: listService,
+        treeDataProvider: listTreeProvider,
         showCollapseAll: true
     });
 
@@ -60,11 +64,12 @@ export function activate(context: vscode.ExtensionContext) {
                     if (!name) {
                         return;
                     }
-                    const list = listService.createList(name);
+                    const list = await listService.createList(name);
                     const entries = await processor.processResource(uri);
                     for (const entry of entries) {
-                        listService.addEntryToList(list.id, entry);
+                        await listService.addEntryToList(list.id, entry);
                     }
+                    listTreeProvider.refresh();
                     return;
                 }
 
@@ -78,8 +83,9 @@ export function activate(context: vscode.ExtensionContext) {
 
                 const entries = await processor.processResource(uri);
                 for (const entry of entries) {
-                    listService.addEntryToList(selected.id, entry);
+                    await listService.addEntryToList(selected.id, entry);
                 }
+                listTreeProvider.refresh();
             } catch (error) {
                 logger.error(`Error adding to list: ${error}`);
             }
@@ -92,7 +98,8 @@ export function activate(context: vscode.ExtensionContext) {
                     placeHolder: 'My List'
                 });
                 if (name) {
-                    listService.createList(name);
+                    await listService.createList(name);
+                    listTreeProvider.refresh();
                 }
             } catch (error) {
                 logger.error(`Error creating list: ${error}`);
@@ -108,7 +115,8 @@ export function activate(context: vscode.ExtensionContext) {
                         'Delete'
                     );
                     if (confirmed === 'Delete') {
-                        listService.deleteList(item.list.id);
+                        await listService.deleteList(item.list.id);
+                        listTreeProvider.refresh();
                     }
                 }
             } catch (error) {
@@ -142,6 +150,13 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Show welcome message
     logger.info('Code Copy extension activated');
+    logger.info('Available commands:');
+    logger.info('- Add to New Clipboard');
+    logger.info('- Add to Existing Clipboard');
+    logger.info('- Add to List');
+    logger.info('- Create List');
+    logger.info('- Delete List');
+    logger.info('- Copy List');
     logger.show();
 }
 
