@@ -24,7 +24,11 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // Register list view
+<<<<<<< HEAD
     const listView = vscode.window.createTreeView('copyToolLists', {
+=======
+    const listView = vscode.window.createTreeView('copyLists', {
+>>>>>>> edddacc5feb454450113445a291e64fcb7f18557
         treeDataProvider: listService,
         showCollapseAll: true
     });
