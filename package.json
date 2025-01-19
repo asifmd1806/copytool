@@ -8,6 +8,10 @@
     "name": "ASIF MOHAMMED",
     "email": "asif18061996@gmail.com"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/asif-mahmud/vscode-copytool.git"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -25,6 +29,10 @@
     "*"
   ],
   "main": "./out/extension.js",
+  "files": [
+    "out/**/*",
+    "src/**/*"
+  ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
