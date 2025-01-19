@@ -31,8 +31,7 @@
   ],
   "main": "./out/extension.js",
   "files": [
-    "out/**/*",
-    "src/**/*"
+    "out/**/*"
   ],
   "contributes": {
     "viewsContainers": {
@@ -186,13 +185,13 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "webpack --mode production",
+    "compile": "webpack",
+    "watch": "webpack --watch",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
-    "build": "npm run compile && vsce package --dependencies"
+    "build": "webpack --mode production && vsce package"
   },
   "devDependencies": {
     "@types/minimatch": "^5.1.2",
@@ -205,7 +204,10 @@
     "@vscode/test-electron": "^2.3.8",
     "eslint": "^8.56.0",
     "mocha": "^10.2.0",
-    "typescript": "^5.3.3"
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "webpack": "^5.90.1",
+    "webpack-cli": "^5.1.4"
   },
   "dependencies": {
     "minimatch": "^10.0.1",

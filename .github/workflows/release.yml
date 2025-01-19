@@ -26,14 +26,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y tree
           npm ci
-          npm install -g @vscode/vsce
-          
-      - name: Verify dependencies
-        run: |
-          echo "Checking node_modules:"
-          ls -la node_modules/minimatch
-          echo "Package contents:"
-          npm ls minimatch
+          npm install -g @vscode/vsce webpack webpack-cli
           
       - name: List directory structure
         run: |
@@ -93,6 +86,8 @@ jobs:
       - name: Build extension
         run: |
           npm run build
+          echo "Build output:"
+          ls -la out/
           echo "VSIX contents:"
           unzip -l *.vsix
           
@@ -108,7 +103,7 @@ jobs:
           NEW_VERSION=${{ steps.new_version.outputs.version }}
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add package.json
+          git add package.json webpack.config.js
           git commit -m "chore: bump version to ${NEW_VERSION} [skip ci]"
           git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
           git push origin "v${NEW_VERSION}"
