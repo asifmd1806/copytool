@@ -28,6 +28,13 @@ jobs:
           npm ci
           npm install -g @vscode/vsce
           
+      - name: Verify dependencies
+        run: |
+          echo "Checking node_modules:"
+          ls -la node_modules/minimatch
+          echo "Package contents:"
+          npm ls minimatch
+          
       - name: List directory structure
         run: |
           echo "TypeScript files and services:"
@@ -84,7 +91,10 @@ jobs:
           npm version $NEW_VERSION --no-git-tag-version
           
       - name: Build extension
-        run: npm run build
+        run: |
+          npm run build
+          echo "VSIX contents:"
+          unzip -l *.vsix
           
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
